@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8fa">
+  <title>Phân bổ ngân sách cá nhân</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --background: #f7f8fa;
+      --surface: #ffffff;
+      --text: #20252e;
+      --muted: #747b86;
+      --border: #e8eaee;
+      --green: #087f46;
+      --red: #d63b3b;
+      --shadow: 0 16px 52px rgba(25, 35, 45, 0.045);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--background);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+
+    .app {
+      width: min(100% - 36px, 800px);
+      margin: 54px auto 44px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 25px;
+    }
+
+    h1 {
+      margin: 0 0 5px;
+      font-size: clamp(22px, 4vw, 28px);
+      font-weight: 750;
+      letter-spacing: -0.7px;
+    }
+
+    .subtitle, .footer, .hint { color: var(--muted); }
+    .subtitle { margin: 0; font-size: 14px; }
+
+    .reset-btn {
+      flex-shrink: 0;
+      border: 1px solid var(--border);
+      background: white;
+      color: #5d6570;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 11px;
+      padding: 10px 13px;
+      transition: background .15s, border-color .15s;
+    }
+
+    .reset-btn:hover { background: #f1f3f5; border-color: #d9dce1; }
+
+    .card {
+      border: 1px solid #e5e7eb;
+      border-radius: 22px;
+      background: var(--surface);
+      padding: 29px 30px 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .eyebrow {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: .9px;
+      color: #79818a;
+    }
+
+    .budget-main {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .budget-input-wrap {
+      display: flex;
+      align-items: baseline;
+      max-width: 100%;
+      margin-top: 5px;
+      border-bottom: 2px solid transparent;
+      transition: border-color .15s;
+    }
+
+    .budget-input-wrap:focus-within { border-color: #16a061; }
+
+    .budget-input {
+      display: block;
+      width: auto;
+      min-width: 2ch;
+      max-width: min(65vw, 400px);
+      field-sizing: content;
+      padding: 0;
+      border: 0;
+      outline: none;
+      background: transparent;
+      color: var(--text);
+      font-size: clamp(29px, 5.7vw, 39px);
+      font-weight: 750;
+      letter-spacing: -.9px;
+      line-height: 1.3;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .currency {
+      font-size: clamp(24px, 5vw, 31px);
+      font-weight: 720;
+      color: var(--text);
+    }
+
+    .wallet-icon {
+      margin-top: 7px;
+      display: grid;
+      place-items: center;
+      width: 43px;
+      height: 43px;
+      border-radius: 12px;
+      color: #66707b;
+      background: #f5f6f7;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin: 30px 0 32px;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding: 0 10px 0 0;
+    }
+
+    .stat-label { color: #818891; font-size: 12px; }
+    .stat strong { font-size: clamp(18px, 3vw, 23px); font-weight: 720; letter-spacing: -.3px; font-variant-numeric: tabular-nums; }
+    #remainingAmount { color: var(--green); }
+    #remainingAmount.negative { color: var(--red); }
+
+    .chart-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .chart-title { font-weight: 650; font-size: 14px; }
+    .usage-text { color: var(--muted); font-size: 12px; }
+
+    .progress {
+      display: flex;
+      width: 100%;
+      height: 16px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #d9dde2;
+    }
+
+    .segment {
+      height: 100%;
+      flex: 0 0 auto;
+      min-width: 0;
+      transition: width .18s ease;
+      border-right: 2px solid white;
+    }
+
+    .segment:last-child { border-right: 0; }
+    .unused { background: #d9dde2; }
+
+    .bar-footnote { margin: 9px 0 0; font-size: 11px; color: #9299a1; }
+
+    .warning {
+      margin-top: 18px;
+      padding: 11px 13px;
+      border-radius: 10px;
+      background: #fff2f2;
+      border: 1px solid #ffdede;
+      color: #b42323;
+      font-size: 13px;
+    }
+    [hidden] { display: none !important; }
+
+    .divider { border: 0; border-top: 1px solid #edf0f2; margin: 26px 0 19px; }
+
+    .list-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 5px;
+    }
+
+    h2 { font-size: 16px; font-weight: 700; margin: 0; letter-spacing: -.1px; }
+    #categoryCount { color: #9199a2; font-size: 12px; }
+
+    .category-row {
+      display: grid;
+      grid-template-columns: 24px minmax(0, 1fr) minmax(130px, 175px) 68px 32px;
+      column-gap: 10px;
+      align-items: center;
+      min-height: 56px;
+      border-bottom: 1px solid #f0f1f3;
+      padding: 4px 0;
+    }
+
+    .category-row:last-child { border-bottom: 0; }
+
+    .color-picker { display: flex; align-items: center; justify-content: center; width: 24px; height: 32px; cursor: pointer; position: relative; }
+    .color-picker input[type="color"] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+    .color-dot { width: 13px; height: 13px; border-radius: 50%; box-shadow: 0 0 0 3px white, 0 0 0 4px rgba(0,0,0,.04); pointer-events: none; }
+
+    .category-name {
+      min-width: 0;
+      width: 100%;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 8px 7px;
+      margin-left: -7px;
+      background: transparent;
+      color: var(--text);
+      outline: 0;
+      font-size: 14px;
+    }
+    .category-name:hover { border-color: #eaecf0; }
+    .category-name:focus { border-color: #c7ddce; background: #fbfdfb; }
+
+    .amount-box {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      border: 1px solid #e9ebee;
+      border-radius: 9px;
+      background: #fbfcfd;
+      padding: 7px 10px;
+      transition: border-color .15s, background .15s;
+    }
+    .amount-box:focus-within { border-color: #9fcfb3; background: white; }
+    .amount-input {
+      outline: 0;
+      border: 0;
+      background: transparent;
+      min-width: 0;
+      width: 100%;
+      text-align: right;
+      font-weight: 620;
+      font-size: 14px;
+      color: #2b333b;
+      font-variant-numeric: tabular-nums;
+    }
+    .amount-suffix { margin-left: 2px; color: #858d95; }
+    .category-percent { text-align: right; color: #9299a2; font-size: 12px; font-variant-numeric: tabular-nums; }
+
+    .delete-btn {
+      display: grid;
+      place-items: center;
+      width: 31px;
+      height: 31px;
+      border: 0;
+      background: transparent;
+      color: #a5abb1;
+      border-radius: 8px;
+      transition: color .15s, background .15s;
+    }
+    .delete-btn:hover { background: #fff0f0; color: #d43b3b; }
+
+    .add-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      margin-top: 15px;
+      padding: 13px;
+      border: 1px dashed #d9dde2;
+      border-radius: 11px;
+      background: white;
+      color: #65707b;
+      font-weight: 630;
+      transition: background .15s, border-color .15s, color .15s;
+    }
+    .add-btn:hover { background: #f6fbf8; border-color: #91c8a6; color: #087f46; }
+    .footer { margin: 18px 7px 0; font-size: 12px; text-align: center; }
+
+    :focus-visible { outline: 2px solid #54a97b; outline-offset: 3px; }
+
+    @media (max-width: 540px) {
+      .app { width: min(100% - 24px, 800px); margin: 28px auto; }
+      .header { align-items: flex-start; margin-bottom: 18px; }
+      .subtitle { font-size: 12px; }
+      .reset-btn { padding: 9px; font-size: 12px; }
+      .reset-btn span { display: none; }
+      .card { padding: 22px 17px 20px; border-radius: 17px; }
+      .stats { gap: 10px; margin: 25px 0 28px; }
+      .category-row {
+        grid-template-columns: 21px minmax(0, 1fr) minmax(104px, 133px) 27px;
+        grid-template-areas: "dot name amount delete" "dot percent amount delete";
+        column-gap: 7px;
+        row-gap: 0;
+        min-height: 67px;
+      }
+      .color-picker { grid-area: dot; }
+      .category-name { grid-area: name; padding: 2px 4px; margin-left: -4px; }
+      .amount-box { grid-area: amount; padding: 7px 6px; }
+      .category-percent { grid-area: percent; text-align: left; }
+      .delete-btn { grid-area: delete; width: 27px; }
+      .bar-footnote { line-height: 1.4; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="header">
+      <div>
+        <h1>Phân bổ ngân sách cá nhân</h1>
+        <p class="subtitle">Lên kế hoạch chi tiêu và biết ngay số tiền còn lại.</p>
+      </div>
+      <button class="reset-btn" id="resetButton" type="button" title="Đặt lại kế hoạch" aria-label="Đặt lại kế hoạch">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>
+        </svg>
+        <span>Đặt lại</span>
+      </button>
+    </header>
+
+    <section class="card" aria-label="Kế hoạch ngân sách">
+      <div class="budget-main">
+        <div>
+          <label class="eyebrow" for="budgetInput">Tổng ngân sách tháng</label>
+          <div class="budget-input-wrap">
+            <input class="budget-input" type="text" inputmode="numeric" pattern="[0-9.]*" id="budgetInput" aria-label="Tổng ngân sách tháng" autocomplete="off" spellcheck="false">
+            <span class="currency">đ</span>
+          </div>
+        </div>
+        <div class="wallet-icon" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="5" width="18" height="15" rx="2"/><path d="M16 13h5v4h-5a2 2 0 0 1 0-4Z"/><path d="M3 9V6a2 2 0 0 1 2-2h13"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-label">Đã phân bổ</span>
+          <strong id="allocatedAmount" aria-live="polite">0đ</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label" id="remainingLabel">Còn lại</span>
+          <strong id="remainingAmount" aria-live="polite">0đ</strong>
+        </div>
+      </div>
+
+      <div class="chart-header">
+        <span class="chart-title">Tỷ lệ phân bổ</span>
+        <span class="usage-text" id="usageText">Chưa phân bổ</span>
+      </div>
+      <div class="progress" id="progressBar" role="img" aria-label="Biểu đồ phân bổ ngân sách"></div>
+      <p class="bar-footnote">Phần màu xám là số tiền chưa phân bổ. Có thể bấm vào chấm màu để đổi màu danh mục.</p>
+      <div class="warning" id="warningMessage" role="alert" hidden></div>
+
+      <hr class="divider">
+      <div class="list-heading">
+        <h2>Danh mục chi tiêu</h2>
+        <span id="categoryCount"></span>
+      </div>
+      <div id="categoryList" aria-label="Danh sách danh mục chi tiêu"></div>
+
+      <button class="add-btn" type="button" id="addCategoryButton">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        Thêm danh mục
+      </button>
+    </section>
+    <p class="footer" id="storageNote">Dữ liệu được tự động lưu trên trình duyệt này. Không cần tài khoản hay kết nối ngân hàng.</p>
+  </main>
+
+  <script>
+    "use strict";
+
+    const STORAGE_KEY = "phan-bo-ngan-sach-v1";
+    const MAX_DIGITS = 12; // Tối đa 999.999.999.999đ cho mỗi ô nhập.
+    const COLORS = ["#16a34a", "#3b82f6", "#f59e0b", "#a855f7", "#0d9488", "#ec4899", "#64748b", "#f97316"];
+    const numberFormatter = new Intl.NumberFormat("vi-VN");
+    const percentFormatter = new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 });
+
+    // Dữ liệu ví dụ lần đầu mở trang. Người dùng chỉnh sửa tùy ý.
+    const exampleCategories = [
+      { id: "home", name: "Tiền nhà", amount: 2500000, color: COLORS[0] },
+      { id: "food", name: "Ăn uống", amount: 2000000, color: COLORS[1] },
+      { id: "travel", name: "Đi lại", amount: 500000, color: COLORS[2] },
+      { id: "fun", name: "Giải trí", amount: 1000000, color: COLORS[3] },
+      { id: "saving", name: "Tiết kiệm", amount: 3000000, color: COLORS[4] },
+      { id: "shopping", name: "Mua sắm", amount: 0, color: COLORS[5] },
+      { id: "other", name: "Chi phí phát sinh", amount: 0, color: COLORS[6] }
+    ];
+
+    function validAmount(value) {
+      return Number.isSafeInteger(value) && value >= 0 && value <= 999999999999;
+    }
+
+    function defaultPlan() {
+      return {
+        budget: 12000000,
+        categories: exampleCategories.map(item => ({ ...item }))
+      };
+    }
+
+    function emptyPlan() {
+      return {
+        budget: 0,
+        categories: exampleCategories.map(item => ({ ...item, amount: 0 }))
+      };
+    }
+
+    function loadPlan() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw === null) return defaultPlan();
+        const loaded = JSON.parse(raw);
+        if (!loaded || !validAmount(loaded.budget) || !Array.isArray(loaded.categories)) {
+          return defaultPlan();
+        }
+        const categories = loaded.categories.map((item, index) => ({
+          id: String(item.id || `category-${index}`),
+          name: typeof item.name === "string" ? item.name.slice(0, 50) : "Danh mục",
+          amount: validAmount(item.amount) ? item.amount : 0,
+          color: /^#[0-9a-fA-F]{6}$/.test(item.color) ? item.color : COLORS[index % COLORS.length]
+        }));
+        return { budget: loaded.budget, categories };
+      } catch (error) {
+        return defaultPlan();
+      }
+    }
+
+    let state = loadPlan();
+    const budgetInput = document.getElementById("budgetInput");
+    const allocatedAmount = document.getElementById("allocatedAmount");
+    const remainingAmount = document.getElementById("remainingAmount");
+    const remainingLabel = document.getElementById("remainingLabel");
+    const progressBar = document.getElementById("progressBar");
+    const usageText = document.getElementById("usageText");
+    const warningMessage = document.getElementById("warningMessage");
+    const categoryList = document.getElementById("categoryList");
+    const categoryCount = document.getElementById("categoryCount");
+
+    const formatNumber = value => numberFormatter.format(value);
+    const formatMoney = value => `${formatNumber(value)}đ`;
+    const formatPercent = value => `${percentFormatter.format(value)}%`;
+
+    function savePlan() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        document.getElementById("storageNote").textContent =
+          "Dữ liệu được tự động lưu trên trình duyệt này. Không cần tài khoản hay kết nối ngân hàng.";
+      } catch (error) {
+        document.getElementById("storageNote").textContent =
+          "Trình duyệt hiện không cho phép lưu dữ liệu. Kế hoạch có thể mất khi đóng trang.";
+      }
+    }
+
+    // Chỉ giữ chữ số, định dạng dấu chấm và giữ vị trí con trỏ khi nhập.
+    function readMoneyInput(input) {
+      const oldValue = input.value;
+      const cursor = input.selectionStart ?? oldValue.length;
+      const digitsBeforeCursor = oldValue.slice(0, cursor).replace(/\D/g, "").length;
+      const digits = oldValue.replace(/\D/g, "").slice(0, MAX_DIGITS);
+      const amount = digits === "" ? 0 : Number(digits);
+      const formatted = digits === "" ? "" : formatNumber(amount);
+      input.value = formatted;
+
+      if (document.activeElement === input) {
+        let newCursor = 0;
+        let seenDigits = 0;
+        while (newCursor < formatted.length && seenDigits < Math.min(digitsBeforeCursor, digits.length)) {
+          if (/\d/.test(formatted[newCursor])) seenDigits++;
+          newCursor++;
+        }
+        if (digitsBeforeCursor === 0) newCursor = 0;
+        input.setSelectionRange(newCursor, newCursor);
+      }
+      return amount;
+    }
+
+    function makeSvgTrash() {
+      // Chỉ chứa HTML cố định, không chèn nội dung người dùng vào innerHTML.
+      return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg>';
+    }
+
+    function renderCategories() {
+      categoryList.replaceChildren();
+      state.categories.forEach(category => {
+        const row = document.createElement("div");
+        row.className = "category-row";
+        row.dataset.id = category.id;
+
+        const picker = document.createElement("label");
+        picker.className = "color-picker";
+        picker.title = "Đổi màu danh mục";
+        const colorInput = document.createElement("input");
+        colorInput.type = "color";
+        colorInput.dataset.role = "color";
+        colorInput.value = category.color;
+        colorInput.setAttribute("aria-label", `Đổi màu ${category.name}`);
+        const dot = document.createElement("span");
+        dot.className = "color-dot";
+        dot.style.backgroundColor = category.color;
+        picker.append(colorInput, dot);
+
+        const nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.className = "category-name";
+        nameInput.dataset.role = "name";
+        nameInput.value = category.name;
+        nameInput.maxLength = 50;
+        nameInput.setAttribute("aria-label", "Tên danh mục");
+        nameInput.title = "Bấm để sửa tên danh mục";
+
+        const amountBox = document.createElement("div");
+        amountBox.className = "amount-box";
+        const amountInput = document.createElement("input");
+        amountInput.type = "text";
+        amountInput.inputMode = "numeric";
+        amountInput.autocomplete = "off";
+        amountInput.spellcheck = false;
+        amountInput.className = "amount-input";
+        amountInput.dataset.role = "amount";
+        amountInput.value = formatNumber(category.amount);
+        amountInput.setAttribute("aria-label", `Số tiền cho ${category.name}`);
+        const suffix = document.createElement("span");
+        suffix.className = "amount-suffix";
+        suffix.textContent = "đ";
+        amountBox.append(amountInput, suffix);
+
+        const percent = document.createElement("span");
+        percent.className = "category-percent";
+        percent.dataset.role = "percent";
+
+        const removeButton = document.createElement("button");
+        removeButton.type = "button";
+        removeButton.className = "delete-btn";
+        removeButton.dataset.role = "delete";
+        removeButton.title = `Xóa ${category.name}`;
+        removeButton.setAttribute("aria-label", `Xóa danh mục ${category.name}`);
+        removeButton.innerHTML = makeSvgTrash();
+
+        row.append(picker, nameInput, amountBox, percent, removeButton);
+        categoryList.append(row);
+      });
+      categoryCount.textContent = `${state.categories.length} danh mục`;
+    }
+
+    // Cập nhật tổng tiền, cảnh báo và biểu đồ sau mỗi lần chỉnh sửa.
+    function updateSummary() {
+      const total = state.categories.reduce((sum, item) => sum + item.amount, 0);
+      const remaining = state.budget - total;
+      const exceeded = remaining < 0;
+      const percentUsed = state.budget > 0 ? (total / state.budget) * 100 : 0;
+
+      allocatedAmount.textContent = formatMoney(total);
+      remainingLabel.textContent = exceeded ? "Vượt ngân sách" : "Còn lại";
+      remainingAmount.textContent = formatMoney(Math.abs(remaining));
+      remainingAmount.classList.toggle("negative", exceeded);
+      usageText.textContent = state.budget === 0
+        ? "Chưa nhập ngân sách"
+        : `Đã phân bổ ${formatPercent(percentUsed)}`;
+
+      warningMessage.hidden = !exceeded;
+      warningMessage.textContent = exceeded
+        ? `Bạn đã phân bổ vượt ngân sách ${formatMoney(-remaining)}. Hãy điều chỉnh để cân đối chi tiêu.`
+        : "";
+
+      progressBar.replaceChildren();
+      // Nếu vượt ngân sách, chuẩn hóa tỷ lệ theo tổng đã phân bổ để thanh không tràn.
+      const chartTotal = Math.max(state.budget, total, 1);
+      state.categories.forEach(category => {
+        if (category.amount <= 0) return;
+        const segment = document.createElement("span");
+        segment.className = "segment";
+        segment.style.width = `${(category.amount / chartTotal) * 100}%`;
+        segment.style.backgroundColor = category.color;
+        segment.title = `${category.name}: ${formatMoney(category.amount)}`;
+        progressBar.append(segment);
+      });
+      const unused = document.createElement("span");
+      unused.className = "segment unused";
+      unused.style.width = `${(Math.max(0, remaining) / chartTotal) * 100}%`;
+      unused.title = `Chưa phân bổ: ${formatMoney(Math.max(0, remaining))}`;
+      progressBar.append(unused);
+      progressBar.setAttribute("aria-label", `Đã phân bổ ${formatMoney(total)} trên tổng ngân sách ${formatMoney(state.budget)}; còn lại ${formatMoney(remaining)}.`);
+
+      categoryList.querySelectorAll(".category-row").forEach(row => {
+        const category = state.categories.find(item => item.id === row.dataset.id);
+        if (!category) return;
+        row.querySelector('[data-role="percent"]').textContent = state.budget === 0
+          ? "—"
+          : formatPercent((category.amount / state.budget) * 100);
+      });
+    }
+
+    budgetInput.value = formatNumber(state.budget);
+    renderCategories();
+    updateSummary();
+
+    budgetInput.addEventListener("input", () => {
+      state.budget = readMoneyInput(budgetInput);
+      updateSummary();
+      savePlan();
+    });
+    budgetInput.addEventListener("blur", () => {
+      if (!budgetInput.value) budgetInput.value = "0";
+    });
+
+    // Lắng nghe chung để không làm mất focus khi đang sửa ô nhập.
+    categoryList.addEventListener("input", event => {
+      const row = event.target.closest(".category-row");
+      if (!row) return;
+      const category = state.categories.find(item => item.id === row.dataset.id);
+      if (!category) return;
+
+      const role = event.target.dataset.role;
+      if (role === "name") {
+        category.name = event.target.value;
+      } else if (role === "amount") {
+        category.amount = readMoneyInput(event.target);
+        updateSummary();
+      } else if (role === "color") {
+        category.color = event.target.value;
+        row.querySelector(".color-dot").style.backgroundColor = category.color;
+        updateSummary();
+      }
+      savePlan();
+    });
+
+    categoryList.addEventListener("blur", event => {
+      const input = event.target;
+      const row = input.closest(".category-row");
+      if (!row) return;
+      const category = state.categories.find(item => item.id === row.dataset.id);
+      if (!category) return;
+      if (input.dataset.role === "name") {
+        category.name = input.value.trim() || "Danh mục mới";
+        input.value = category.name;
+        row.querySelector('[data-role="amount"]').setAttribute("aria-label", `Số tiền cho ${category.name}`);
+        row.querySelector('[data-role="color"]').setAttribute("aria-label", `Đổi màu ${category.name}`);
+        row.querySelector('[data-role="delete"]').setAttribute("aria-label", `Xóa danh mục ${category.name}`);
+        savePlan();
+      }
+      if (input.dataset.role === "amount" && !input.value) input.value = "0";
+    }, true);
+
+    categoryList.addEventListener("click", event => {
+      const button = event.target.closest('[data-role="delete"]');
+      if (!button) return;
+      const row = button.closest(".category-row");
+      state.categories = state.categories.filter(item => item.id !== row.dataset.id);
+      renderCategories();
+      updateSummary();
+      savePlan();
+    });
+
+    document.getElementById("addCategoryButton").addEventListener("click", () => {
+      const id = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      state.categories.push({
+        id,
+        name: "Danh mục mới",
+        amount: 0,
+        color: COLORS[(state.categories.length) % COLORS.length]
+      });
+      renderCategories();
+      updateSummary();
+      savePlan();
+      const input = Array.from(categoryList.querySelectorAll(".category-row"))
+        .find(row => row.dataset.id === id)?.querySelector('[data-role="name"]');
+      input?.focus();
+      input?.select();
+    });
+
+    document.getElementById("resetButton").addEventListener("click", () => {
+      if (!window.confirm("Đặt lại kế hoạch? Tổng ngân sách và toàn bộ số tiền phân bổ sẽ trở về 0.")) return;
+      state = emptyPlan();
+      budgetInput.value = "0";
+      renderCategories();
+      updateSummary();
+      savePlan();
+    });
+  </script>
+</body>
+</html>
